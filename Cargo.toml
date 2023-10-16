@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 actix-web = "4.4.0"
 anyhow = "1.0.75"
+configparser = "3.0.2"
 file-lock = "2.1.10"
 serde = { version = "1.0.189", features = ["derive"] }

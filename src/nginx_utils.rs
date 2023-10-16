@@ -1,3 +1,4 @@
+use actix_web::web;
 use anyhow::Result;
 use file_lock::{FileLock, FileOptions};
 use serde::Deserialize;
@@ -7,10 +8,7 @@ use std::{
     process::Command,
 };
 
-pub const NGINX_CONF_PATH: &str = "/etc/nginx/nginx.conf";
-pub const NGINX_CONF_BACKUP_PATH: &str = "/etc/nginx/nginx.conf.backup";
-pub const ENCLAVE_IMAGE_INITIAL_USED_CAPACITY_MB: u64 = 2 * 1024;
-pub const ALLOTMENT_PER_WORKERD_MB: u64 = 512;
+use crate::config_load::AppState;
 
 pub async fn soft_reload_nginx() -> Result<()> {
     let output = Command::new("nginx")
@@ -35,10 +33,13 @@ pub struct AddServerInfo {
     capacity: u64,
 }
 
-pub async fn add_server(server: AddServerInfo) -> Result<(String, u64, u64)> {
+pub async fn add_server(
+    server: AddServerInfo,
+    config: web::Data<AppState>,
+) -> Result<(String, u64, u64)> {
     let ip = server.ip;
-    let weight = server.capacity - ENCLAVE_IMAGE_INITIAL_USED_CAPACITY_MB;
-    let max_conns = weight / ALLOTMENT_PER_WORKERD_MB;
+    let weight = server.capacity - config.enclave_image_initial_used_capacity_mb;
+    let max_conns = weight / config.allotment_per_workerd_mb;
     let line_to_add = format!("server {ip} weight={weight} max_conns={max_conns}");
 
     let options = FileOptions::new()
@@ -47,14 +48,14 @@ pub async fn add_server(server: AddServerInfo) -> Result<(String, u64, u64)> {
         .create(true)
         .append(true);
 
-    let filelock = match FileLock::lock(NGINX_CONF_PATH, true, options) {
+    let filelock = match FileLock::lock(&config.nginx_conf_path, true, options) {
         Ok(lock) => lock,
         Err(err) => panic!("Error getting write lock: {:#?}", err),
     };
 
     let output = Command::new("cp")
-        .arg(format!("{NGINX_CONF_PATH}"))
-        .arg(format!("{NGINX_CONF_BACKUP_PATH}"))
+        .arg(format!("{}", config.nginx_conf_path))
+        .arg(format!("{}", config.nginx_conf_backup_path))
         .output()
         .expect("Failed to create backup file");
 
@@ -65,7 +66,7 @@ pub async fn add_server(server: AddServerInfo) -> Result<(String, u64, u64)> {
         ));
     }
 
-    let file = File::open(NGINX_CONF_PATH).unwrap();
+    let file = File::open(&config.nginx_conf_path).unwrap();
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
     let mut contents = String::new();
@@ -89,14 +90,14 @@ pub async fn add_server(server: AddServerInfo) -> Result<(String, u64, u64)> {
         }
         contents.push_str("\n");
     }
-    let mut file = File::create(NGINX_CONF_PATH).unwrap();
+    let mut file = File::create(&config.nginx_conf_path).unwrap();
     file.write_all(contents.as_bytes()).unwrap();
 
     let res = soft_reload_nginx().await;
     if res.is_err() {
         let output = Command::new("mv")
-            .arg(format!("{NGINX_CONF_BACKUP_PATH}"))
-            .arg(format!("{NGINX_CONF_PATH}"))
+            .arg(format!("{}", config.nginx_conf_backup_path))
+            .arg(format!("{}", config.nginx_conf_path))
             .output()
             .expect("Failed to restore from backup file");
 
@@ -118,21 +119,21 @@ pub struct RemoveServerInfo {
     pub ip: String,
 }
 
-pub async fn remove_server(ip: String) -> Result<bool> {
+pub async fn remove_server(ip: String, config: web::Data<AppState>) -> Result<bool> {
     let options = FileOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .append(true);
 
-    let filelock = match FileLock::lock(NGINX_CONF_PATH, true, options) {
+    let filelock = match FileLock::lock(&config.nginx_conf_path, true, options) {
         Ok(lock) => lock,
         Err(err) => panic!("Error getting write lock: {:#?}", err),
     };
 
     let output = Command::new("cp")
-        .arg(format!("{NGINX_CONF_PATH}"))
-        .arg(format!("{NGINX_CONF_BACKUP_PATH}"))
+        .arg(format!("{}", config.nginx_conf_path))
+        .arg(format!("{}", config.nginx_conf_backup_path))
         .output()
         .expect("Failed to create backup file");
 
@@ -143,7 +144,7 @@ pub async fn remove_server(ip: String) -> Result<bool> {
         ));
     }
 
-    let file = File::open(NGINX_CONF_PATH).unwrap();
+    let file = File::open(&config.nginx_conf_path).unwrap();
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
     let mut contents = String::new();
@@ -158,14 +159,14 @@ pub async fn remove_server(ip: String) -> Result<bool> {
             contents.push_str("\n");
         }
     }
-    let mut file = File::create(NGINX_CONF_PATH).unwrap();
+    let mut file = File::create(&config.nginx_conf_path).unwrap();
     file.write_all(contents.as_bytes()).unwrap();
 
     let res = soft_reload_nginx().await;
     if res.is_err() {
         let output = Command::new("mv")
-            .arg(format!("{NGINX_CONF_BACKUP_PATH}"))
-            .arg(format!("{NGINX_CONF_PATH}"))
+            .arg(format!("{}", config.nginx_conf_backup_path))
+            .arg(format!("{}", config.nginx_conf_path))
             .output()
             .expect("Failed to restore from backup file");
 
