@@ -1,5 +1,6 @@
 mod config_load;
 mod nginx_utils;
+mod utils;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 

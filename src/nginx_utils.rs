@@ -9,6 +9,7 @@ use std::{
 };
 
 use crate::config_load::AppState;
+use crate::utils::is_valid_ip_with_port;
 
 pub async fn soft_reload_nginx() -> Result<()> {
     let output = Command::new("nginx")
@@ -38,6 +39,15 @@ pub async fn add_server(
     config: web::Data<AppState>,
 ) -> Result<(String, u64, u64)> {
     let ip = server.ip;
+    if !is_valid_ip_with_port(&ip) {
+        return Err(anyhow::anyhow!("Invalid IP address"));
+    }
+    if server.capacity <= config.enclave_image_initial_used_capacity_mb {
+        return Err(anyhow::anyhow!(
+            "Capacity must be greater than {}",
+            config.enclave_image_initial_used_capacity_mb
+        ));
+    }
     let weight = server.capacity - config.enclave_image_initial_used_capacity_mb;
     let max_conns = weight / config.allotment_per_workerd_mb;
     let line_to_add = format!("server {ip} weight={weight} max_conns={max_conns}");
