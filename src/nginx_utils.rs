@@ -114,6 +114,8 @@ pub async fn add_server(
                 String::from_utf8(output.stderr).unwrap()
             ));
         }
+
+        return Err(anyhow::anyhow!("Failed to add the ip to server and reload"));
     }
 
     let _ = filelock.unlock();
