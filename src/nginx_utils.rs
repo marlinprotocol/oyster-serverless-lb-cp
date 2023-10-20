@@ -85,16 +85,13 @@ pub async fn add_server(
     while let Some(line) = lines.next() {
         let line = line.unwrap();
 
-        if !added {
-            if line.contains(format!("server {}", &ip).as_str()) {
-                contents.push_str(format!("{line_to_add}").as_str());
-                added = true;
-            }
-            if line.contains("# SERVERS -- END") {
-                contents.push_str(format!("{line_to_add}\n").as_str());
-                contents.push_str(&line);
-                added = true;
-            }
+        if !added && line.contains(format!("server {}", &ip).as_str()) {
+            contents.push_str(format!("{line_to_add}").as_str());
+            added = true;
+        } else if !added && line.contains("# SERVERS -- END") {
+            contents.push_str(format!("{line_to_add}\n").as_str());
+            contents.push_str(&line);
+            added = true;
         } else {
             contents.push_str(&line);
         }
