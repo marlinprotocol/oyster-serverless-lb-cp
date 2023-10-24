@@ -50,7 +50,7 @@ pub async fn add_server(
     }
     let weight = server.capacity - config.enclave_image_initial_used_capacity_mb;
     let max_conns = weight / config.allotment_per_workerd_mb;
-    let line_to_add = format!("server {ip} weight={weight} max_conns={max_conns}");
+    let line_to_add = format!("      server {ip} weight={weight} max_conns={max_conns};");
 
     let options = FileOptions::new()
         .read(true)
