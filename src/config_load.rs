@@ -6,6 +6,7 @@ pub struct AppState {
     pub nginx_conf_backup_path: String,
     pub enclave_image_initial_used_capacity_mb: u64,
     pub allotment_per_workerd_mb: u64,
+    pub port: u16,
 }
 
 pub async fn get_config() -> AppState {
@@ -25,5 +26,6 @@ pub async fn get_config() -> AppState {
             .unwrap()
             .parse::<u64>()
             .unwrap(),
+        port: config.get("env", "PORT").unwrap().parse::<u16>().unwrap(),
     }
 }

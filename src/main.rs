@@ -85,7 +85,7 @@ async fn main() -> std::io::Result<()> {
             .service(add_server)
             .service(remove_server)
     })
-    .bind(("000000000", 8012))?
+    .bind(("000000000", config.port))?
     .run()
     .await
 }
