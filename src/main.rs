@@ -77,7 +77,7 @@ async fn main() -> std::io::Result<()> {
     let config = config_load::get_config().await;
     let app_data = web::Data::new(AppState { ..config });
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(app_data.clone())
             .service(index)
@@ -85,7 +85,11 @@ async fn main() -> std::io::Result<()> {
             .service(add_server)
             .service(remove_server)
     })
-    .bind(("000000000", config.port))?
-    .run()
-    .await
+    .bind(("0.0.0.0", config.port))
+    .unwrap_or_else(|_| panic!("Can not bind to {}", &config.port))
+    .run();
+
+    println!("Server started on port {}", config.port);
+
+    server.await
 }
