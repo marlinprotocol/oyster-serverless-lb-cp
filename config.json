@@ -1,0 +1,39 @@
+{
+    "caddy": {
+        "url": "",
+        "caddyfile": ""
+    },
+    "params": {
+        "arch": "amd64"
+    },
+    "volume": "/app/mount",
+    "service_commands": [
+        {
+            "name": "oyster_serverless_lb_cp",
+            "command": "/app/oyster-serverless-lb-cp",
+            "build_commands": [
+                "apk update",
+                "apk add nginx openrc",
+                "openrc && touch /run/openrc/softlevel",
+                "service nginx start",
+                "cp -f /app/mount/nginx.conf /etc/nginx/nginx.conf",
+                "apk add --no-cache pcc-libs-dev musl-dev pkgconfig openssl-dev",
+                "apk add --no-cache curl gcc",
+                "curl https://sh.rustup.rs -sSf | sh -s -- -y",
+                "export PATH=\"$PATH:$HOME/.cargo/bin\" && cd /app/mount && cargo build --release",
+                "cp /app/mount/target/release/oyster-serverless-lb-cp /app/oyster-serverless-lb-cp",
+                "cp /app/mount/config.ini /app/config.ini",
+                "export PATH=\"$PATH:$HOME/.cargo/bin\" && rustup self uninstall -y",
+                "apk del pcc-libs-dev musl-dev pkgconfig openssl-dev curl gcc",
+                "rm -Rf /app/mount",
+                "chmod +x /app/oyster-serverless-lb-cp"
+            ],
+            "ports": [
+                7001,
+                80,
+                443
+            ],
+            "env": {}
+        }
+    ]
+}
