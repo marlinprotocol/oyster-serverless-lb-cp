@@ -17,7 +17,7 @@ async fn index() -> impl Responder {
 async fn soft_reload() -> impl Responder {
     let res = nginx_utils::soft_reload_nginx().await;
 
-    if !res.is_err() {
+    if res.is_err() {
         return HttpResponse::InternalServerError().body(format!(
             "Failed to soft reload nginx. Error :{:?}",
             res.err().unwrap()
