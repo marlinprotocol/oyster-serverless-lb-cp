@@ -9,9 +9,9 @@ pub struct AppState {
     pub port: u16,
 }
 
-pub async fn get_config() -> AppState {
+pub async fn get_config(config_path: String) -> AppState {
     let mut config = Ini::new();
-    config.load("config.ini").unwrap();
+    config.load(config_path).unwrap();
 
     AppState {
         nginx_conf_path: config.get("env", "NGINX_CONF_PATH").unwrap(),

@@ -3,6 +3,7 @@ mod nginx_utils;
 mod utils;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use clap::Parser;
 
 use nginx_utils::{AddServerInfo, RemoveServerInfo};
 
@@ -72,9 +73,18 @@ async fn remove_server(
     HttpResponse::Ok().body("Server removed successfully")
 }
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[clap(long, value_parser, default_value = "config.ini")]
+    config_path: String,
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let config = config_load::get_config().await;
+    let cli = Args::parse();
+
+    let config = config_load::get_config(cli.config_path).await;
     let app_data = web::Data::new(AppState { ..config });
 
     let server = HttpServer::new(move || {
