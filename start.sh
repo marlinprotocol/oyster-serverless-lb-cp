@@ -1,5 +1,7 @@
 #!/bin/sh
 
+/app/ssl_certificates.sh
+
 /app/oyster-serverless-lb-cp --config-path /app/config.ini &
 echo "Oyster Serverless LB CP is running"
 
